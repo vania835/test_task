@@ -1,36 +1,106 @@
-  name: Install and configure NGINX
-- hosts: webservers
+---
+- name: Install and configure LAMP stack
+  hosts: webservers
   become: true
   vars:
-    nginx_port: 80
+    mysql_root_password: "your_secure_password"
   tasks:
+    # --- APACHE SECTION ---
     - name: Update apt cache
       apt:
         update_cache: yes
 
-    - name: Install nginx
+    - name: Install Apache
       apt:
-        name: nginx
+        name: apache2
         state: present
         notify:
-        - Start NGINX
+          - Start Apache
 
-    - name: Configure nginx from template
-      template:
-        src: /path/nginx.conf.j2
-        dest: /etc/nginx/nginx.conf
+    - name: Enable Apache mod_rewrite
+      apache2_module:
+        name: rewrite
+        state: present
+        notify:
+          - Restart Apache
 
-    - name: Copy a file from local to remote
+    # --- MYSQL SECTION ---
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+        notify:
+          - Start MySQL
+
+    - name: Set MySQL root password
+      mysql_user:
+        name: root
+        password: "{{ mysql_root_password }}"
+        host: localhost
+        state: present
+        login_unix_socket: /var/run/mysqld/mysqld.sock
+
+    - name: Secure MySQL installation
+      mysql_secure_installation:
+        login_password: ""
+        new_password: "{{ mysql_root_password }}"
+        remove_anonymous_users: yes
+        disallow_root_login_remotely: yes
+        remove_test_database: yes
+        reload_privilege_tables: yes
+
+    # --- PHP SECTION ---
+    - name: Install PHP and required modules
+      apt:
+        name:
+          - php
+          - php-mysql
+          - libapache2-mod-php
+        state: present
+        notify:
+          - Restart Apache
+
+    # --- CREATE TEST FILES ---
+    - name: Create a simple HTML file
       copy:
-        src: /path/index.html
-        dest: /index.html
+        content: |
+          <html>
+            <head><title>Test Page</title></head>
+            <body>
+              <h1>Welcome to the LAMP stack!</h1>
+              <p>This is a test page served by Apache.</p>
+            </body>
+          </html>
+        dest: /var/www/html/index.html
         owner: www-data
         group: www-data
-        mode: '0644'    
+        mode: '0644'
 
-      handlers:
-        - name: Start NGINX
-        service:
-          name: nginx
-          state: started
-          enabled: true
+    - name: Create a PHP info file
+      copy:
+        content: |
+          <?php
+          phpinfo();
+          ?>
+        dest: /var/www/html/info.php
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+  handlers:
+    - name: Start Apache
+      service:
+        name: apache2
+        state: started
+        enabled: true
+
+    - name: Restart Apache
+      service:
+        name: apache2
+        state: restarted
+
+    - name: Start MySQL
+      service:
+        name: mysql
+        state: started
+        enabled: true
