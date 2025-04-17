@@ -17,7 +17,7 @@
 
     - name: Configure nginx from template
       template:
-        src: /home/vagrant/nginx.conf.j2
+        src: /path/nginx.conf.j2
         dest: /etc/nginx/nginx.conf
 
     - name: Copy a file from local to remote
