@@ -3,7 +3,7 @@
   hosts: webservers
   become: true
   vars:
-    mysql_root_password: "your_secure_password"
+    mysql_root_password: "password"
   tasks:
     # --- APACHE SECTION ---
     - name: Update apt cache
@@ -19,7 +19,7 @@
 
     - name: Configure Apache from template
       template:
-        src: /path/to/apache.conf.j2
+        src: ./apache.conf.j2
         dest: /etc/apache2/sites-available/000-default.conf
         notify:
           - Restart Apache
