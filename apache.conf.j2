@@ -1,0 +1,15 @@
+<VirtualHost *:80>
+    # Корневая директория сервера
+    DocumentRoot /
+
+    # Настройки доступа
+    <Directory />
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Логи
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
