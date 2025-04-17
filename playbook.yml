@@ -1,5 +1,5 @@
 ---
-- name: Install and configure LAMP stack
+- name: Install and configure LAMP stack with custom Apache config
   hosts: webservers
   become: true
   vars:
@@ -17,10 +17,10 @@
         notify:
           - Start Apache
 
-    - name: Enable Apache mod_rewrite
-      apache2_module:
-        name: rewrite
-        state: present
+    - name: Configure Apache from template
+      template:
+        src: /path/to/apache.conf.j2
+        dest: /etc/apache2/sites-available/000-default.conf
         notify:
           - Restart Apache
 
@@ -61,7 +61,7 @@
           - Restart Apache
 
     # --- CREATE TEST FILES ---
-    - name: Create a simple HTML file
+    - name: Create a simple HTML file in the root directory
       copy:
         content: |
           <html>
@@ -71,7 +71,7 @@
               <p>This is a test page served by Apache.</p>
             </body>
           </html>
-        dest: /var/www/html/index.html
+        dest: /index.html
         owner: www-data
         group: www-data
         mode: '0644'
@@ -82,7 +82,7 @@
           <?php
           phpinfo();
           ?>
-        dest: /var/www/html/info.php
+        dest: /info.php
         owner: www-data
         group: www-data
         mode: '0644'
