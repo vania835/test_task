@@ -1,0 +1,78 @@
+---
+- name: Configure firewall and install Zabbix agent
+  hosts: monitored_servers
+  become: true
+  vars:
+    zabbix_server_ip: "192.168.1.105" # IP  Zabbix Server
+  tasks:
+    # --- FIREWALL CONFIGURATION ---
+    - name: Install UFW (Uncomplicated Firewall)
+      apt:
+        name: ufw
+        state: present
+
+    - name: Allow SSH (port 22)
+      ufw:
+        rule: allow
+        port: 22
+        proto: tcp
+
+    - name: Allow HTTP (port 80)
+      ufw:
+        rule: allow
+        port: 80
+        proto: tcp
+
+    - name: Allow HTTPS (port 443)
+      ufw:
+        rule: allow
+        port: 443
+        proto: tcp
+
+    - name: Allow Zabbix Agent (port 10050)
+      ufw:
+        rule: allow
+        port: 10050
+        proto: tcp
+
+    - name: Enable UFW and allow outgoing connections
+      ufw:
+        state: enabled
+        policy: allow
+        direction: outgoing
+
+    # --- ZABBIX AGENT INSTALLATION ---
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Zabbix agent
+      apt:
+        name: zabbix-agent
+        state: present
+        notify:
+          - Start Zabbix Agent
+
+    - name: Configure Zabbix agent
+      lineinfile:
+        path: /etc/zabbix/zabbix_agentd.conf
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+      loop:
+        - { regexp: '^Server=', line: 'Server={{ zabbix_server_ip }}' }
+        - { regexp: '^ServerActive=', line: 'ServerActive={{ zabbix_server_ip }}' }
+        - { regexp: '^Hostname=', line: 'Hostname={{ inventory_hostname }}' }
+      notify:
+        - Restart Zabbix Agent
+
+  handlers:
+    - name: Start Zabbix Agent
+      service:
+        name: zabbix-agent
+        state: started
+        enabled: true
+
+    - name: Restart Zabbix Agent
+      service:
+        name: zabbix-agent
+        state: restarted
